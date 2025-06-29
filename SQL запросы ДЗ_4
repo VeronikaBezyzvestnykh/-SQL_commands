@@ -1,0 +1,39 @@
+Цены номенклатуры (product_price):
+1. ALTER TABLE product_price DROP COLUMN id
+2. ALTER TABLE product_price DROP CONSTRAINT unique_product_price 
+4. ALTER TABLE product_price ADD PRIMARY KEY (period, product_id, price_type_id)
+
+Курсы валют (exchange_rates):
+1. CREATE TABLE exchange_rates (period DATE, currency_id INT, value NUMERIC(10,2) NOT NULL)
+2. ALTER TABLE exchange_rates ADD PRIMARY KEY (period, currency_id)
+3. ALTER TABLE exchange_rates ADD CONSTRAINT fk_currency_id FOREIGN KEY (currency_id) REFERENCES currency (id) ON DELETE CASCADE ON UPDATE CASCADE
+4. INSERT INTO exchange_rates (period, currency_id, value) VALUES (NOW(), '1', 1.00)
+5. INSERT INTO exchange_rates (period, currency_id, value) VALUES ('2025-06-26', '2', 78.19), ('2025-06-27', '2', 78.21), (NOW(), '2', 78.22)
+
+Склады (warehouses):
+1. CREATE TABLE warehouses (id SERIAL PRIMARY KEY, name VARCHAR(150) NOT NULL UNIQUE)
+2. INSERT INTO warehouses (name) VALUES ('Центральный'), ('Кировский')
+
+Перемещение товаров (doc_movement_goods):
+1. CREATE TABLE doc_movement_goods (id SERIAL PRIMARY KEY, number INT NOT NULL, carrying BOOLEAN NOT NULL, sender_warehouses_id INT NOT NULL, recipient_warehouses_id INT NOT NULL)
+2. ALTER TABLE doc_movement_goods ADD CONSTRAINT fk_sender_warehouses_id FOREIGN KEY (sender_warehouses_id) REFERENCES warehouses (id)
+3. ALTER TABLE doc_movement_goods ADD CONSTRAINT fk_recipient_warehouses_id FOREIGN KEY (recipient_warehouses_id) REFERENCES warehouses (id)
+4. INSERT INTO doc_movement_goods (number, carrying, sender_warehouses_id, recipient_warehouses_id) VALUES ('000000001', true, '1', '2')
+5. ALTER TABLE doc_movement_goods ADD COLUMN date timestamp
+6. UPDATE doc_movement_goods SET date = NOW()
+
+ТЧ "Номенклатура" документа Перемещение товаров (doc_movement_goods_product_list):
+1. CREATE TABLE doc_movement_goods_product_list (doc_movement_goods_id SERIAL, row_id INT, product_id INT NOT NULL UNIQUE, amount REAL NOT NULL)
+2. ALTER TABLE doc_movement_goods_product_list ADD PRIMARY KEY (doc_movement_goods_id, row_id)
+3. ALTER TABLE doc_movement_goods_product_list ADD CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product_list (id) ON DELETE RESTRICT ON UPDATE NO ACTION
+4. ALTER TABLE doc_movement_goods_product_list ADD CONSTRAINT fk_doc_movement_goods_id FOREIGN KEY (doc_movement_goods_id) REFERENCES doc_movement_goods (id) ON DELETE CASCADE ON UPDATE CASCADE
+5. INSERT INTO doc_movement_goods_product_list (doc_movement_goods_id, row_id, product_id, amount) VALUES ('1', '1', '1', '13'), ('1', '2', '6', '2') 
+
+Остатки на складах (warehouse_stock):
+1. CREATE TABLE warehouse_stock (period timestamp, product_id INT, warehouses_id INT, doc_movement_goods_id INT NOT NULL, doc_row_id INT NOT NULL, movement_type SMALLINT NOT NULL CHECK (movement_type IN (1, 2)), amount REAL NOT NULL)
+2. ALTER TABLE warehouse_stock ADD PRIMARY KEY (period, product_id, warehouses_id) 
+3. ALTER TABLE warehouse_stock ADD CONSTRAINT unique_doc_movement_goods UNIQUE (doc_movement_goods_id, doc_row_id, movement_type)
+4. ALTER TABLE warehouse_stock ADD CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product_list (id) ON DELETE RESTRICT ON UPDATE NO ACTION 
+5. ALTER TABLE warehouse_stock ADD CONSTRAINT fk_warehouses_id FOREIGN KEY (warehouses_id) REFERENCES warehouses (id) ON DELETE RESTRICT ON UPDATE NO ACTION  
+6. ALTER TABLE warehouse_stock ADD CONSTRAINT fk_doc_movement_goods_id FOREIGN KEY (doc_movement_goods_id) REFERENCES doc_movement_goods (id) ON DELETE CASCADE ON UPDATE CASCADE
+7. INSERT INTO warehouse_stock (period, product_id, warehouses_id, doc_movement_goods_id, doc_row_id, movement_type, amount) VALUES ('2025-06-28 09:58:40.857989', '1', '1', '1', '1', '2', '13'), ('2025-06-28 09:58:40.857989', '1', '2', '1', '1', '1', '13'), ('2025-06-28 09:58:40.857989', '6', '1', '1', '2', '2', '2'), ('2025-06-28 09:58:40.857989', '6', '2', '1', '2', '1', '2') 
