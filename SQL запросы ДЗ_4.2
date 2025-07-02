@@ -1,0 +1,22 @@
+Остатки на складах (warehouse_stock):
+1. ALTER TABLE warehouse_stock RENAME COLUMN doc_movement_goods_id TO doc_id
+
+Поступление товаров (doc_receipt_goods):
+1. CREATE TABLE doc_receipt_goods (id SERIAL PRIMARY KEY, date timestamp NOT NULL, number INT NOT NULL, carrying BOOLEAN NOT NULL, warehouses_id INT NOT NULL)
+2. ALTER TABLE doc_receipt_goods ADD CONSTRAINT fk_warehouses_id FOREIGN KEY (warehouses_id) REFERENCES warehouses (id)
+
+ТЧ "Номенклатура" документа Поступление товаров (doc_receipt_goods_product_list):
+1. CREATE TABLE doc_receipt_goods_product_list (doc_receipt_goods_id SERIAL, row_id INT, product_id INT NOT NULL UNIQUE, amount REAL NOT NULL)
+2. ALTER TABLE doc_receipt_goods_product_list ADD PRIMARY KEY (doc_receipt_goods_id, row_id)
+3. ALTER TABLE doc_receipt_goods_product_list ADD CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product_list (id) ON DELETE RESTRICT ON UPDATE NO ACTION
+4. ALTER TABLE doc_receipt_goods_product_list ADD CONSTRAINT fk_doc_receipt_goods_id FOREIGN KEY (doc_receipt_goods_id) REFERENCES doc_receipt_goods (id) ON DELETE CASCADE ON UPDATE CASCADE
+
+Списание товаров (doc_write_off_goods):
+1. CREATE TABLE doc_write_off_goods (id SERIAL PRIMARY KEY, date timestamp NOT NULL, number INT NOT NULL, carrying BOOLEAN NOT NULL, warehouses_id INT NOT NULL)
+2. ALTER TABLE doc_write_off_goods ADD CONSTRAINT fk_warehouses_id FOREIGN KEY (warehouses_id) REFERENCES warehouses (id)
+
+ТЧ "Номенклатура" документа Списание товаров (doc_write_off_goods_product_list):
+1. CREATE TABLE doc_write_off_goods_product_list (doc_write_off_goods_id SERIAL, row_id INT, product_id INT NOT NULL UNIQUE, amount REAL NOT NULL)
+2. ALTER TABLE doc_write_off_goods_product_list ADD PRIMARY KEY (doc_write_off_goods_id, row_id)
+3. ALTER TABLE doc_write_off_goods_product_list ADD CONSTRAINT fk_product_id FOREIGN KEY (product_id) REFERENCES product_list (id) ON DELETE RESTRICT ON UPDATE NO ACTION
+4. ALTER TABLE doc_write_off_goods_product_list ADD CONSTRAINT fk_doc_write_off_goods_id FOREIGN KEY (doc_write_off_goods_id) REFERENCES doc_write_off_goods (id) ON DELETE CASCADE ON UPDATE CASCADE
